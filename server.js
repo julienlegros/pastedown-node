@@ -5,8 +5,20 @@ var express = require('express'),
 var app = express();
 app.use(express.bodyParser());
 
+var renderer = new marked.Renderer();
+
+renderer.table = function (header, body) {
+  return '<table class="table table-striped">' +
+    '<thead>' +
+      header  +
+    '</thead>'+
+    '<tbody>' +
+      body    +
+    '</tbody>'+
+    '</table>'
+};
+
 marked.setOptions({
-  gfm: true,
   sanitize: true,
   highlight: function (code, lang) {
     if (lang) {
@@ -18,15 +30,20 @@ marked.setOptions({
 });
 
 app.post('/api/markdown', function(req, res){
-  var paste = req.body;
-  var input = paste.body;
-  //var gfm = paste.gfm;
+  var pastes = req.body;
+  if(!Array.isArray(pastes)){
+    pastes = [pastes]
+  }
 
-  //if(gfm === false)
+  var i, paste, html;
+  var array = new Array();
+  for (i = 0; i < pastes.length; i++) {
+    paste = pastes[i];
+    html = marked(paste.body, { gfm: paste.gfm, renderer: renderer });
+    array.push({ output: html });
+  }
 
-  var html = marked(input);
-
-  res.send({ output: html });
+  res.send({ array: array });
 });
 
 var server = app.listen(3000);
